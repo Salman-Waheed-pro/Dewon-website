@@ -1,0 +1,14 @@
+# OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Vercel CLI link folder (holds local project ids, not site content)
+.vercel/
+
+# In case the photo tools ever install packages
+node_modules/
+
+# kept locally, not published
+assets/images/ref.png
+assets/images/personeatingchicken*.png

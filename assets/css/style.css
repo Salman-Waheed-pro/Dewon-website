@@ -1,0 +1,1510 @@
+@charset "UTF-8";
+
+/* ═══════════════════════════════════════════════════════════════
+   DEWON FRIED CHICKEN
+
+   Light-first. White cards on a warm cream ground, orange doing the
+   loud work, black carrying the type. The layout language — horizontal
+   product card with the photo on the right and a round + overlapping
+   it, a category pill rail on a colour band, a combined price-and-CTA
+   pill — is taken from cluckin.pk. The component primitives (dialog,
+   tabs, accordion, badge, field) follow the shadcn/ui structure.
+
+   Colour rule, measured rather than assumed:
+     #f5822e on white          2.59:1  → fills only, never text
+     black on #f5822e          7.61:1  → so orange fills take BLACK type
+     white on #c24d0e          4.81:1  → the deep orange carries white type
+     #b4571a on white          4.86:1  → orange type on paper uses rust
+
+   Vendor: Open Props (radii, shadows, easings), Swiper (card carousel).
+   Both vendored locally — no build step, no CDN, no third-party request.
+   ═══════════════════════════════════════════════════════════════ */
+
+
+/* ── 1. TOKENS ─────────────────────────────────────────────── */
+
+:root {
+  /* Sampled from the logo file. */
+  --orange:      #f5822e;   /* the brand orange — fills, with black on top */
+  --orange-hot:  #ff7a1a;   /* hover */
+  --orange-deep: #c24d0e;   /* orange that can carry white text */
+  --orange-deep-hot: #d9661a;  /* hover for orange-deep fills — a lighter orange, not red */
+  --rust:        #b4571a;   /* orange text on paper */
+  --ember:       #d4380d;   /* heat only, e.g. the spice/chilli indicators — not for hover states */
+
+  --black:       #0b0b0b;
+  --ink-2:       #171614;
+  --ink-3:       #232120;
+  --white:       #ffffff;
+  --cream:       #fdf6ee;   /* the page ground */
+  --cream-2:     #f6ece0;
+  --line:        #ebe0d3;
+
+  /* Surface roles. Components read these, never the literals above, so a
+     section changes ground colour without touching a component rule.
+     White is the page default now — cream is kept only as a subtle inset
+     tone inside white cards (chip backgrounds, ticket panels). */
+  --surface:        var(--white);
+  --surface-raised: var(--cream);
+  --on-surface:     var(--black);
+  --on-surface-dim: #5f5852;
+  --hairline:       var(--line);
+  --accent:         var(--rust);
+  --on-accent:      var(--white);
+
+  --ff-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --ff-body:    "Instrument Sans", system-ui, -apple-system, sans-serif;
+
+  --step--1: clamp(0.82rem, 0.79rem + 0.14vw, 0.89rem);
+  --step-0:  clamp(1rem, 0.96rem + 0.2vw, 1.08rem);
+  --step-1:  clamp(1.16rem, 1.08rem + 0.4vw, 1.4rem);
+  --step-2:  clamp(1.45rem, 1.28rem + 0.85vw, 2rem);
+  --step-3:  clamp(1.9rem, 1.55rem + 1.75vw, 3rem);
+  --step-4:  clamp(2.15rem, 1.65rem + 2.9vw, 4.4rem);
+  --step-5:  clamp(2.6rem, 1.8rem + 3.9vw, 5rem);
+
+  --gutter: clamp(1.15rem, 0.9rem + 1.2vw, 2rem);
+  --bay:    clamp(3.2rem, 2.2rem + 4.4vw, 6rem);
+  --maxw:   1240px;
+
+  /* Radii, shadows and easings come from Open Props rather than being
+     invented here. Fallbacks keep the file standalone. */
+  --r-sm: var(--radius-1, 6px);
+  --r:    var(--radius-2, 12px);
+  --r-lg: var(--radius-3, 20px);
+  --r-xl: 26px;
+  --pill: var(--radius-round, 999px);
+
+  --shadow-card: 0 2px 4px rgb(96 70 45 / .05), 0 12px 26px rgb(96 70 45 / .09);
+  /* Hover shadow: lighter and orange-tinted rather than a dark drop shadow,
+     so lifting an element reads as a warm glow, not a heavier weight. */
+  --shadow-pop:  0 6px 16px rgb(245 130 46 / .16), 0 22px 44px rgb(245 130 46 / .16);
+
+  --ease: var(--ease-out-3, cubic-bezier(.2, .7, .3, 1));
+  --fast: .16s var(--ease);
+  --med:  .3s var(--ease);
+}
+
+/* Dark blocks — footer only. Kept as a class so the footer partial does
+   not need special-casing, but nothing else in the page uses it: text and
+   background are never orange-on-black or black-on-orange anywhere else. */
+.on-ink {
+  --surface: var(--black);
+  --surface-raised: var(--ink-2);
+  --on-surface: var(--white);
+  --on-surface-dim: #c2bdb6;
+  --hairline: #2c2a27;
+  --accent: var(--orange);
+  --on-accent: var(--black);
+  --chip-neutral: #c2bdb6; --chip-green: #86c47a; --chip-hot: #ff9478;
+}
+/* Orange bands. Deep orange, white type — never orange-and-black. White on
+   the deep orange is 4.81:1. */
+.on-orange {
+  --surface: var(--orange-deep);
+  --surface-raised: var(--white);
+  --on-surface: var(--white);
+  --on-surface-dim: #ffe2c9;
+  --hairline: #d8894f;
+  --accent: var(--white);
+  --on-accent: var(--orange-deep);
+}
+/* Alias: every section is white by default now, so this just opts a
+   section into the page ground explicitly where that reads better. */
+.on-paper { --surface: var(--white); }
+
+
+/* ── 2. BASE ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 88px; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+body {
+  background: var(--white);
+  color: var(--black);
+  font-family: var(--ff-body);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+img, svg, video { display: block; max-width: 100%; height: auto; }
+a { color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:where(button) { cursor: pointer; }
+
+::selection { background: var(--orange-deep); color: var(--white); }
+
+:focus-visible { outline: 3px solid var(--orange-deep); outline-offset: 3px; border-radius: 4px; }
+.on-ink :focus-visible, .ftr :focus-visible { outline-color: var(--orange); }
+.on-orange :focus-visible { outline-color: var(--white); }
+
+.skip {
+  position: absolute; left: 12px; top: -80px; z-index: 200;
+  background: var(--orange-deep); color: var(--white);
+  padding: 12px 20px; border-radius: var(--pill); font-weight: 700;
+  transition: top var(--fast);
+}
+.skip:focus { top: 12px; }
+
+.vh {
+  position: absolute !important; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+
+/* ── 3. TYPE ───────────────────────────────────────────────── */
+
+.display {
+  font-family: var(--ff-display);
+  font-weight: 800; font-stretch: 116%;
+  line-height: .94; letter-spacing: -.015em;
+  text-transform: uppercase; text-wrap: balance;
+  overflow-wrap: break-word; hyphens: auto;
+}
+.d1 { font-size: var(--step-5); }
+.d2 { font-size: var(--step-4); }
+.d3 { font-size: var(--step-3); }
+.d4 { font-size: var(--step-2); font-stretch: 110%; }
+.d5 { font-size: var(--step-1); font-stretch: 108%; letter-spacing: 0; }
+
+/* Eyebrow kicker labels are hidden site-wide per request. */
+.eyebrow { display: none; }
+.lede { font-size: var(--step-1); line-height: 1.5; }
+.dim  { color: var(--on-surface-dim); }
+.num  { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+
+
+/* ── 4. LAYOUT ─────────────────────────────────────────────── */
+
+.wrap { width: min(100% - (var(--gutter) * 2), var(--maxw)); margin-inline: auto; }
+.section { background: var(--surface); color: var(--on-surface); padding-block: var(--bay); }
+.section--tight { padding-block: calc(var(--bay) * .6); }
+
+.section-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2.4rem;
+}
+
+.grid { display: grid; gap: clamp(1rem, .6rem + 1.2vw, 1.5rem); }
+.g-2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.g-3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 262px), 1fr)); }
+/* Grid and flex children default to min-width:auto, which lets a long word
+   push a column wider than the viewport. */
+.grid > *, .bento > *, .mrow > * { min-width: 0; }
+
+.rule { height: 1px; background: var(--hairline); border: 0; }
+
+
+/* ── 5. BUTTONS ────────────────────────────────────────────── */
+
+.btn {
+  --btn-bg: var(--black); --btn-fg: var(--white);
+  display: inline-flex; align-items: center; justify-content: center; gap: .55rem;
+  min-height: 50px; padding: .85rem 1.7rem;
+  background: var(--btn-bg); color: var(--btn-fg);
+  border: 0; border-radius: var(--pill);
+  font-family: var(--ff-display); font-weight: 700; font-stretch: 110%;
+  font-size: var(--step--1); letter-spacing: .07em; text-transform: uppercase;
+  text-decoration: none; text-align: center;
+  transition: transform var(--fast), background var(--fast), color var(--fast), box-shadow var(--fast);
+}
+/* Hover is a same-role shade shift, no swap and no lift shadow — a colour
+   change is enough of an affordance on its own. */
+.btn:hover { box-shadow: none; }
+.btn:active { box-shadow: none; }
+.btn .ic { width: 18px; height: 18px; }
+
+/* Deep-orange fill, white type — 4.81:1. This is the loud one. Never the
+   bright orange with black type: white-on-orange-deep is the only orange
+   fill that carries text on this site. */
+.btn--primary { --btn-bg: var(--orange-deep); --btn-fg: var(--white); }
+.btn--primary:hover { --btn-bg: #d9661a; }
+
+.btn--paper { --btn-bg: var(--cream); --btn-fg: var(--black); }
+.btn--paper:hover { --btn-bg: var(--cream-2); }
+
+/* No outline: a quiet fill that darkens slightly on hover, so the
+   affordance is a colour shift rather than a border. */
+.btn--ghost {
+  --btn-bg: color-mix(in srgb, var(--on-surface) 7%, transparent);
+  --btn-fg: var(--on-surface);
+}
+.btn--ghost:hover { --btn-bg: color-mix(in srgb, var(--on-surface) 13%, transparent); }
+
+.btn--sm { min-height: 46px; padding: .65rem 1.15rem; font-size: .78rem; }
+.btn--block { width: 100%; }
+
+/* No underline — the site uses none anywhere; colour and weight mark it. */
+.linky {
+  display: inline-flex; align-items: center; gap: .4rem;
+  color: var(--accent); font-weight: 700; text-decoration: none;
+  transition: opacity var(--fast);
+}
+.linky:hover { opacity: .75; }
+
+.ic {
+  width: 20px; height: 20px; flex: none;
+  /* <use> does not inherit presentation attributes from the sprite root,
+     so the stroke setup has to live on the referencing element. */
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+
+
+/* ── 6. HEADER ─────────────────────────────────────────────── */
+
+/* The header is transparent and pinned to the top on every page, floating
+   over whatever is below it. A faint self-contained scrim + text-shadow
+   keep the white type legible over both the hero and lighter pages. */
+.hdr {
+  position: fixed; inset: 0 0 auto 0; z-index: 90;
+  background: transparent;
+  border-bottom: 0;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.hdr::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; z-index: -1; pointer-events: none;
+  height: 150px;
+  background: linear-gradient(to bottom, rgb(12 8 4 / .42), rgb(12 8 4 / .12) 55%, transparent);
+}
+.hdr-in { display: flex; align-items: center; gap: 1rem; min-height: 74px; }
+
+.hdr .brand b,
+.hdr .brand > span > span { text-shadow: 0 1px 6px rgb(0 0 0 / .5); }
+.hdr .brand b { color: #fff; }
+.hdr .brand > span > span { color: rgb(255 255 255 / .82); }
+@media (min-width: 1081px) {
+  .hdr .nav a,
+  .hdr .nav > .has-sub > button { color: #fff; text-shadow: 0 1px 6px rgb(0 0 0 / .5); }
+  .hdr .nav a:hover,
+  .hdr .nav > .has-sub > button:hover,
+  .hdr .nav > .has-sub[data-open="true"] > button { color: var(--orange); text-shadow: none; }
+  .hdr .nav a[aria-current="page"] { color: var(--orange); text-shadow: none; }
+}
+
+.brand { display: flex; align-items: center; gap: .6rem; min-height: 46px; text-decoration: none; margin-right: auto; transition: opacity var(--fast); }
+.brand:hover { opacity: .82; }
+/* The mark's own PNG is transparent, so it already sits seamlessly on the
+   header's white/blur — no chip, no backing shape, just sized up a little
+   for presence since nothing is boxing it in anymore. */
+.brand img { width: 48px; height: auto; }
+.brand b {
+  display: block;
+  font-family: var(--ff-display); font-weight: 800; font-stretch: 112%;
+  font-size: 1.05rem; letter-spacing: .005em; text-transform: uppercase; line-height: 1;
+  color: var(--black);
+}
+.brand > span > span {
+  display: block; font-size: .6rem; letter-spacing: .22em;
+  color: var(--rust); text-transform: uppercase; margin-top: 3px;
+}
+
+.nav { display: flex; align-items: center; gap: .1rem; }
+.nav a, .nav > .has-sub > button {
+  position: relative;
+  display: inline-flex; align-items: center; gap: .3rem;
+  min-height: 46px; padding: .5rem .78rem;
+  background: none; border: 0; border-radius: var(--r-sm);
+  font-family: var(--ff-display); font-weight: 600; font-stretch: 106%;
+  font-size: .83rem; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--black); text-decoration: none; white-space: nowrap;
+  transition: color var(--fast);
+}
+.nav a:hover, .nav > .has-sub > button:hover { color: var(--rust); }
+/* The current page is marked by colour alone, no underline bar. */
+.nav a[aria-current="page"] { color: var(--rust); }
+
+.has-sub { position: relative; }
+.has-sub > button .ic { width: 15px; height: 15px; transition: transform var(--fast); }
+.has-sub[data-open="true"] > button .ic { transform: rotate(180deg); }
+.has-sub[data-open="true"] > button { color: var(--rust); }
+/* Bridges the visual gap between the button and .sub below it — without
+   this, moving the pointer straight down crosses a strip that belongs to
+   neither element, :hover drops, and the panel closes before it's reached. */
+.has-sub::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 10px;
+}
+
+.sub {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 95;
+  min-width: 274px; padding: .45rem;
+  background: var(--white); border: 0;
+  border-radius: var(--r-lg); box-shadow: none;
+  display: none;
+}
+.has-sub[data-open="true"] .sub { display: block; }
+/* Desktop pointer: hovering "Menu" reveals the options immediately,
+   without waiting for a click. Touch and keyboard still use the click
+   toggle above via [data-open]. */
+@media (hover: hover) and (pointer: fine) {
+  .has-sub:hover .sub { display: block; }
+}
+.sub a {
+  display: flex; align-items: flex-start; gap: .7rem; width: 100%;
+  padding: .7rem .8rem; border-radius: var(--r);
+  text-transform: none; letter-spacing: 0; font-family: var(--ff-body);
+  font-weight: 600; font-size: .95rem;
+}
+.sub a:hover { background: var(--cream); color: var(--black); }
+.sub a .ic { color: var(--rust); margin-top: 2px; }
+.sub a small { display: block; font-weight: 400; font-size: .8rem; color: var(--on-surface-dim); margin-top: 1px; }
+
+.lang { display: flex; background: var(--cream); border-radius: var(--pill); overflow: hidden; }
+.lang button {
+  min-width: 46px; min-height: 44px; padding: 0 .5rem;
+  background: none; border: 0; color: #6a635c;
+  font-family: var(--ff-display); font-weight: 700; font-size: .76rem; letter-spacing: .1em;
+  transition: background var(--fast), color var(--fast);
+}
+.lang button:hover { background: var(--cream-2); }
+.lang button[aria-pressed="true"] { background: var(--orange-deep); color: var(--white); }
+.lang button[aria-pressed="true"]:hover { background: var(--orange-hot); }
+
+.burger {
+  display: none; align-items: center; justify-content: center;
+  width: 48px; height: 48px; background: var(--cream);
+  border: 0; border-radius: var(--r); color: var(--black);
+  transition: background var(--fast), transform var(--fast);
+}
+.burger:hover { background: var(--cream-2); transform: translateY(-1px); }
+
+@media (max-width: 1080px) {
+  .burger { display: inline-flex; }
+  .nav {
+    position: fixed; inset: 74px 0 auto 0; z-index: 88;
+    flex-direction: column; align-items: stretch; gap: 0;
+    max-height: calc(100dvh - 74px); overflow-y: auto;
+    padding: .8rem var(--gutter) 2rem;
+    background: var(--white); border-bottom: 1px solid var(--line);
+    box-shadow: var(--shadow-pop);
+    transform: translateY(-8px); opacity: 0; pointer-events: none;
+    transition: opacity var(--fast), transform var(--fast);
+  }
+  .nav[data-open="true"] { transform: none; opacity: 1; pointer-events: auto; }
+  .nav a, .nav > .has-sub > button {
+    width: 100%; justify-content: space-between; min-height: 56px;
+    font-size: 1.05rem; border-radius: 0;
+  }
+  .has-sub { width: 100%; }
+  .sub { position: static; display: none; min-width: 0; margin: .25rem 0 .5rem; background: var(--cream); box-shadow: none; }
+  .has-sub[data-open="true"] .sub { display: block; }
+  /* Icon + label rows, not label-left/arrow-right rows: space-between
+     pushed each label to a different offset depending on its length. */
+  .nav .sub a { justify-content: flex-start; }
+  .lang { margin-left: auto; }
+}
+
+
+/* ── 7. HERO ───────────────────────────────────────────────── */
+/* One pre-composed hero photograph that fills the first screen. The header
+   floats transparently over the top of it (see .hdr--home); a soft scrim
+   at the top keeps the nav legible and one at the foot keeps the CTA
+   legible. */
+
+:root { --hdr-h: 75px; }
+
+.hero {
+  position: relative; isolation: isolate; overflow: hidden;
+  background: var(--surface); color: var(--on-surface);
+}
+
+/* The hero image IS the section: full viewport height, with the header
+   sitting on top rather than above it. object-fit crops the wide shot. */
+.hero-pic {
+  display: block; width: 100%;
+  height: 100svh;
+  min-height: 420px; max-height: 960px;
+  object-fit: cover; object-position: 50% 30%;
+}
+
+/* Foot scrim — keeps the CTA row legible over the photo. */
+.hero::after {
+  content: ""; position: absolute; inset: auto 0 0 0; z-index: 1;
+  height: clamp(120px, 26%, 220px); pointer-events: none;
+  background: linear-gradient(to top, rgb(10 6 3 / .62), rgb(10 6 3 / .12) 62%, transparent);
+}
+
+/* CTA row: centred over the foot of the image. */
+.hero-copy {
+  position: absolute; z-index: 2; left: 0; right: 0;
+  bottom: clamp(1.4rem, 4svh, 2.8rem);
+  text-align: center;
+}
+.hero-cta { display: flex; flex-wrap: wrap; gap: .7rem; justify-content: center; }
+
+@media (max-width: 620px) {
+  .hero-pic { object-position: 38% 30%; }
+  .hero::after { height: clamp(140px, 34%, 240px); }
+  .hero-copy { bottom: clamp(1rem, 3svh, 1.8rem); }
+  .hero-cta { padding-inline: 1rem; }
+  .hero-cta .btn { flex: 1 1 auto; }
+}
+
+/* Phones, and tablets either way up (anything up to 4:3). The photo is a
+   wide 16:9 shot; forced to full screen height it showed only a slice of
+   it (half a face). Here it is shown whole, at its own shape, on a white
+   frame: the header sits above it and the buttons below, so neither
+   covers it. Blurred wings and drumsticks, scattered at random by
+   app.js, fill the white so it reads as a fried-chicken spread rather
+   than empty margin. Wider screens keep the full-screen photo. */
+@media (max-aspect-ratio: 4/3) {
+  .hero { background: var(--white); padding-top: var(--hdr-h); }
+  .hero-pic {
+    position: relative; z-index: 1;
+    height: auto; min-height: 0; max-height: none;
+    aspect-ratio: 2736 / 1536; object-position: 50% 50%;
+  }
+  .hero::after { content: none; }
+  .hero-copy { position: relative; bottom: auto; padding: 1.1rem 0 1.4rem; }
+  .hero-cta .btn--paper { box-shadow: var(--shadow-card); }
+}
+.hero-scatter { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.hero-scatter img {
+  position: absolute; height: auto; max-width: none;
+  filter: blur(5px); opacity: .75;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-scatter img { animation: scatter-in .8s var(--ease) both; }
+}
+@keyframes scatter-in { from { opacity: 0; transform: scale(.85) rotate(var(--r, 0deg)); } }
+
+/* When the mobile drawer is open, drop the transparent treatment so the
+   bar reads as a solid panel with the sheet. */
+@media (max-width: 1080px) {
+  .hdr:has(.nav[data-open="true"]) { background: var(--white); }
+  .hdr:has(.nav[data-open="true"])::before { display: none; }
+  .hdr:has(.nav[data-open="true"]) .brand b { color: var(--black); text-shadow: none; }
+  .hdr:has(.nav[data-open="true"]) .brand > span > span { color: var(--rust); text-shadow: none; }
+}
+
+/* Generic photo-slot placeholder, used across menu cards, the picker and
+   reservation rows: until a real photo is supplied the slot says what
+   belongs in it rather than showing stand-in artwork. */
+:where(.pslot) { position: relative; }
+.pslot img { width: 100%; height: 100%; object-fit: contain; }
+.pslot-ph {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: .35rem; text-align: center; padding: .5rem;
+  border: 2px dashed #f5822e8c; border-radius: var(--r);
+  background: rgb(245 130 46 / .08); color: var(--orange);
+}
+.pslot[data-has="1"] .pslot-ph { display: none; }
+.pslot-ph b {
+  font-family: var(--ff-display); font-weight: 700; font-stretch: 106%;
+  font-size: clamp(.55rem, .34rem + .68vw, .76rem);
+  letter-spacing: .1em; text-transform: uppercase; line-height: 1.2;
+}
+.pslot-ph .ic { width: 18px; height: 18px; opacity: .8; }
+
+
+/* ── 8. MARQUEE ────────────────────────────────────────────── */
+
+.marquee { background: var(--orange-deep); color: var(--white); overflow: hidden; padding-block: .72rem; }
+.marquee-track { display: flex; gap: 2.1rem; width: max-content; animation: slide 34s linear infinite; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+.marquee-track span {
+  display: inline-flex; align-items: center; gap: 2.1rem;
+  font-family: var(--ff-display); font-weight: 800; font-stretch: 116%;
+  font-size: clamp(.82rem, .76rem + .3vw, 1rem); letter-spacing: .07em;
+  text-transform: uppercase; white-space: nowrap;
+}
+.marquee-track span::after { content: none; }
+@keyframes slide { to { transform: translateX(-50%); } }
+
+/* Partner marks in the marquee sit on their own white chip — Epassi's
+   mark is orange and would vanish straight into the orange-deep band
+   otherwise, so every logo gets the same safe, guaranteed-contrast card. */
+.marquee-logo {
+  background: var(--white); border-radius: var(--pill);
+  padding: .3rem .8rem; gap: 0 !important;
+}
+.marquee-logo::after { content: none; }
+.marquee-logo img { display: block; height: 14px; width: auto; }
+.marquee-logo--epassi {
+  padding: .22rem; width: 26px; height: 26px; overflow: hidden; border-radius: 50%;
+}
+.marquee-logo--epassi img {
+  height: auto; width: 100%; object-fit: cover; object-position: top center;
+  aspect-ratio: 1 / 1;
+}
+
+
+/* ── 9. THE SEAL — 7 days, 7 sauces ────────────────────────── */
+
+.seal-band { background: var(--white); }
+.seal-wrap { display: grid; gap: clamp(1.6rem, 1rem + 3vw, 3.2rem); align-items: center; grid-template-columns: 1fr; }
+@media (min-width: 880px) { .seal-wrap { grid-template-columns: minmax(230px, 330px) 1fr; } }
+.seal { width: min(100%, 330px); margin-inline: auto; animation: spin 44s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* All seven sauces, shown as top-down ramekin bowls in a responsive grid. */
+.sauce-intro {
+  display: grid; gap: clamp(1.4rem, 1rem + 2.6vw, 2.8rem);
+  align-items: center; grid-template-columns: 1fr;
+}
+@media (min-width: 820px) {
+  .sauce-intro { grid-template-columns: minmax(190px, 280px) 1fr; }
+}
+.sauce-intro .seal { width: min(100%, 280px); margin-inline: auto; }
+
+/* One single row of bare bowls — no cards, no borders, just a line of
+   ramekins with the name under each. On phones it becomes a horizontal
+   scroll strip so the bowls stay a legible size. */
+.sauce-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: clamp(.4rem, .1rem + 1vw, 1.2rem);
+  margin-top: clamp(1.6rem, 1.2rem + 2.4vw, 2.8rem);
+  align-items: start;
+}
+.sauce-cell {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  margin: 0; padding: 0; background: none; border: 0;
+}
+.sauce-bowl {
+  width: 100%; max-width: 130px; height: auto; display: block;
+  filter: drop-shadow(0 8px 12px rgb(50 30 15 / .18));
+}
+.sauce-cell figcaption {
+  margin-top: .6rem; font-weight: 700; line-height: 1.25;
+  font-size: clamp(.62rem, .55rem + .35vw, .84rem);
+}
+
+@media (max-width: 920px) {
+  .sauce-grid {
+    display: flex; overflow-x: auto; scroll-snap-type: x proximity;
+    gap: .8rem; padding-bottom: .7rem;
+    margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter);
+    -webkit-overflow-scrolling: touch;
+  }
+  .sauce-cell { flex: 0 0 auto; width: 30vw; max-width: 150px; min-width: 96px; scroll-snap-align: start; }
+  .sauce-cell figcaption { font-size: clamp(.72rem, .66rem + .3vw, .84rem); }
+}
+
+/* ── rotating buffet menu ────────────────────────────────────── */
+
+/* Content comes from assets/js/buffet-menu.js. Each station carries a
+   tone — the same colours as the buffet chips on the home page — used
+   only on its icon roundel and list bullets. No rule lines anywhere:
+   spacing and the small caps labels do the separating. */
+
+/* "On this page" buttons under the page intro. */
+.jump-nav { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.4rem; }
+.jump-nav a {
+  display: inline-flex; align-items: center; gap: .45rem;
+  min-height: 44px; padding: .5rem 1rem;
+  background: var(--white); color: var(--black);
+  border: 1.5px solid var(--line); border-radius: var(--pill);
+  font-family: var(--ff-display); font-weight: 700; font-stretch: 106%;
+  font-size: .78rem; letter-spacing: .05em; text-transform: uppercase;
+  text-decoration: none;
+  transition: border-color var(--fast), color var(--fast);
+}
+.jump-nav a:hover { border-color: var(--orange); color: var(--rust); }
+.jump-nav .ic { width: 16px; height: 16px; color: var(--rust); flex: none; }
+/* Phones: an even two-column grid rather than a ragged wrap. */
+@media (max-width: 559px) {
+  .jump-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .jump-nav a { padding-inline: .8rem; font-size: .72rem; }
+}
+
+/* Straight under the page intro and its buttons, without a second
+   band of section padding stacked on the header's own. */
+#today.section { padding-top: clamp(1.2rem, .8rem + 1.2vw, 2rem); }
+
+/* Today's buffet leads; the price sits beside it, smaller. */
+.buffet-top { display: grid; gap: 1.2rem; align-items: start; }
+@media (min-width: 880px) {
+  .buffet-top { grid-template-columns: minmax(0, 1.75fr) minmax(250px, 1fr); align-items: stretch; }
+}
+
+.buffet-today {
+  display: flex; flex-direction: column; gap: 1.1rem;
+  padding: clamp(1.2rem, .9rem + 1vw, 1.9rem);
+  background: var(--white); border: 1.5px solid var(--orange);
+  border-radius: var(--r-xl); box-shadow: var(--shadow-pop);
+}
+.buffet-today-head p { margin-top: .5rem; font-weight: 600; color: var(--rust); font-size: .95rem; }
+.buffet-today-body { display: grid; gap: 1.1rem; align-items: center; }
+@media (min-width: 560px) {
+  .buffet-today-body { grid-template-columns: 1fr minmax(160px, 38%); }
+}
+.buffet-today .btn { align-self: flex-start; margin-top: auto; }
+@media (max-width: 559px) { .buffet-today .btn { align-self: stretch; } }
+
+.bt-list { list-style: none; padding: 0; display: grid; gap: .7rem; }
+.bt-list li { display: flex; align-items: flex-start; gap: .75rem; font-size: .96rem; line-height: 1.4; }
+.bt-list b {
+  display: block; margin-bottom: .1rem;
+  font-family: var(--ff-display); font-weight: 700; font-stretch: 106%;
+  font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--on-surface-dim);
+}
+.bt-ic, .bcard-ic {
+  flex: none; display: grid; place-items: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--tone, var(--rust)); color: var(--white);
+}
+.bt-ic .ic, .bcard-ic .ic { width: 16px; height: 16px; }
+.ic--solid { fill: currentColor; stroke: none; }
+
+/* All three cut photos are transparent cut-outs, so they sit straight on
+   the card with no tile of their own — the card's white shows through. */
+.bt-cut { margin: 0; background: none; aspect-ratio: 3 / 2; }
+.bt-cut img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 14px rgb(0 0 0 / .14)); }
+@media (max-width: 559px) { .bt-cut { order: -1; max-width: 220px; } }
+
+.buffet-price { padding: 1.4rem; }
+.buffet-price .tier-price { font-size: clamp(2rem, 1.7rem + 1.2vw, 2.7rem); margin-block: .6rem .5rem; }
+.buffet-price-when { display: flex; align-items: center; gap: .45rem; font-weight: 600; margin-bottom: .5rem; }
+.buffet-price-when .ic { width: 17px; height: 17px; color: var(--rust); }
+.buffet-price .dim { font-size: .92rem; }
+.tier.buffet-price .btn { margin-top: auto; align-self: flex-start; }
+.buffet-price > .dim { margin-bottom: .7rem; }
+.buffet-price-pay { margin-bottom: 1.2rem; font-size: .85rem; font-weight: 600; color: var(--rust); }
+
+.bcard--golden  { --tone: #b8791a; }
+.bcard--curry   { --tone: #b23a1c; }
+.bcard--finnish { --tone: #2f5f8a; }
+.bcard--salad   { --tone: #3f8a4a; }
+.bcard--sweet   { --tone: #9a5aa8; }
+.bcard--soup    { --tone: #a3561c; }
+
+/* The monthly board: heading, a calendar strip, three panels. Sized so
+   the strip and all three panels fit one laptop screen. */
+/* Less top padding than a normal section, so after the jump button the
+   heading, calendar and all three panels fit one laptop screen. */
+.section.bmonth { padding-top: clamp(1rem, .6rem + 1vw, 1.6rem); }
+.bmonth-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1rem; margin-bottom: .75rem; }
+.bmonth-head p { font-size: .95rem; }
+
+/* Calendar strip: no fill of its own, outlined days, the chosen day
+   filled. A wider gap marks where a weekend falls. */
+.cal {
+  display: flex; gap: .4rem; overflow-x: auto; scrollbar-width: none;
+  padding: .2rem var(--gutter); margin: 0 calc(var(--gutter) * -1) .85rem;
+  scroll-snap-type: x proximity; background: none;
+}
+.cal::-webkit-scrollbar { display: none; }
+.cal-day {
+  flex: none; scroll-snap-align: start;
+  display: grid; justify-items: center; align-content: center; gap: .05rem;
+  min-width: 64px; min-height: 52px; padding: .35rem .7rem;
+  background: none; color: var(--black);
+  border: 1.5px solid var(--line); border-radius: var(--r);
+  transition: border-color var(--fast), background var(--fast), color var(--fast);
+}
+.cal-day:hover { border-color: var(--orange); }
+.cal-day--week { margin-left: .9rem; }
+.cal-wd {
+  font-family: var(--ff-display); font-weight: 700; font-size: .66rem;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--on-surface-dim);
+}
+.cal-date { font-family: var(--ff-display); font-weight: 800; font-size: .98rem; }
+.cal-day[aria-selected="true"] { background: var(--orange-deep); border-color: var(--orange-deep); color: var(--white); }
+.cal-day[aria-selected="true"] .cal-wd { color: #ffe2c9; }
+
+/* The chosen date is announced to screen readers; the filled calendar
+   day already shows it on screen. Shown only in owner preview mode. */
+.buffet-day-label:not(.is-preview) {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+.buffet-day-label.is-preview {
+  margin-bottom: 1rem; font-family: var(--ff-display); font-weight: 800;
+  text-transform: uppercase; color: var(--rust);
+}
+
+/* Three equal-height panels: salad bar | mains | desserts & drinks.
+   Tablet: salad bar and desserts stack on the left, mains on the right.
+   Phone: one column. */
+.bboard { display: grid; gap: 1rem; }
+.bboard > * { min-width: 0; }
+@media (min-width: 700px) {
+  .bboard { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
+  .bpanel--salad { grid-column: 1; grid-row: 1; }
+  .bpanel--sweet { grid-column: 1; grid-row: 2; }
+  .bpanel--mains { grid-column: 2; grid-row: 1 / span 2; }
+}
+@media (min-width: 1100px) {
+  .bboard { grid-template-columns: minmax(0, 1.15fr) minmax(0, 2.1fr) minmax(0, .95fr); }
+  /* Panels share the heading row, so a heading that wraps ("Jälkiruoat
+     & juomat") keeps every panel's content starting on one line. */
+  .bboard { grid-template-rows: auto 1fr; row-gap: 0; }
+  .bboard > .bpanel {
+    grid-row: 1 / span 2; display: grid; grid-template-rows: subgrid; row-gap: 0;
+  }
+  .bpanel--mains { grid-column: 2; }
+  .bpanel--sweet { grid-column: 3; }
+}
+
+.bpanel {
+  display: flex; flex-direction: column;
+  padding: 1.05rem 1.2rem 1.2rem;
+  background: var(--white); color: var(--black);
+  border: 1px solid var(--line); border-radius: var(--r-xl);
+  box-shadow: var(--shadow-card);
+}
+.bpanel-head {
+  display: flex; align-items: center; gap: .6rem; margin-bottom: .7rem;
+  font-family: var(--ff-display); font-weight: 800; font-stretch: 108%;
+  font-size: 1.05rem; line-height: 1.1; text-transform: uppercase;
+}
+/* The body is the size container for the queries below; the grid sits
+   inside it because a contained element cannot also be a subgrid. */
+.bpanel-body { container-type: inline-size; }
+.bpanel-grid { display: grid; gap: .8rem 1.5rem; align-content: start; }
+/* The mains panel lays its six stations out by the room it has: three
+   across on a laptop (the hot mains, then soup, crispy sides and bread),
+   two across on a tablet or a phone held sideways, one on a phone. */
+@container (min-width: 400px) {
+  .bpanel--mains .bpanel-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Stations side by side share row tracks (label / list), so a
+     label that wraps to two lines never pushes its list below its
+     neighbours' lists. */
+  .bpanel--mains .bsec { display: grid; grid-row: span 2; grid-template-rows: subgrid; row-gap: 0; align-content: start; }
+  /* Columns are too narrow for label-beside-dish, so the label goes
+     above and the dish name gets the full column width. */
+  .bpanel--mains .blist--parts { gap: .35rem; }
+  .bpanel--mains .blist--parts li { display: block; }
+  .bpanel--mains .blist--parts .bl-tag { display: block; padding-top: 0; }
+}
+@container (min-width: 540px) {
+  .bpanel--mains .bpanel-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem 1.2rem; }
+}
+
+.bsec-head {
+  margin-bottom: .3rem;
+  font-family: var(--ff-display); font-weight: 700; font-size: .7rem;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--on-surface-dim);
+}
+.blist { list-style: none; padding: 0; display: grid; gap: .08rem; align-content: start; font-size: .92rem; line-height: 1.3; }
+.blist li { position: relative; padding-left: .95rem; overflow-wrap: break-word; hyphens: auto; }
+.blist li::before {
+  content: ""; position: absolute; left: 0; top: .55em;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--tone, var(--rust));
+}
+/* Short names (fruit, drinks) always go two-up. The salad bar's longer
+   ones ("Shredded red cabbage") only when the panel is wide, as on a
+   phone; in the narrow laptop column they get one line each. */
+.blist--2, .blist--2w { column-gap: .8rem; }
+.blist--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container (min-width: 280px) {
+  .blist--2w { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Named parts of a main — "Meat: Devilled chicken" — on one line each. */
+.blist--parts { gap: .22rem; }
+.blist--parts li { display: grid; grid-template-columns: 4.1rem minmax(0, 1fr); gap: .4rem; padding-left: 0; font-weight: 600; }
+.blist--parts li::before, .blist--stack li::before { content: none; }
+.bl-tag {
+  padding-top: .2rem;
+  font-family: var(--ff-display); font-weight: 700; font-size: .62rem;
+  letter-spacing: .04em; text-transform: uppercase; color: var(--on-surface-dim);
+  overflow-wrap: normal; word-break: keep-all;
+}
+.blist--stack { gap: .45rem; }
+.blist--stack li { padding-left: 0; font-weight: 600; }
+.blist--stack .bl-tag { display: block; padding-top: 0; }
+
+/* The day's chicken cut as a small photo at the right of its label.
+   Positioned out of flow so the label row keeps the same height as its
+   neighbours and the three mains stay aligned. */
+.bsec--kana { position: relative; }
+.bsec-thumb {
+  position: absolute; top: -.3rem; right: 0;
+  width: 54px; aspect-ratio: 3 / 2; object-fit: contain; background: none;
+}
+.bsec--kana .bsec-head { padding-right: 62px; }
+
+
+/* ── 10. CARDS ─────────────────────────────────────────────── */
+
+.pcard {
+  position: relative; display: flex; flex-direction: column;
+  background: var(--white); color: var(--black);
+  border: 1px solid var(--line); border-radius: var(--r-xl);
+  padding: 1rem; box-shadow: var(--shadow-card);
+  transition: transform var(--med), box-shadow var(--med);
+  --chip-neutral: #6b655e; --chip-green: #3f6b34; --chip-hot: #a3321a;
+}
+.pcard:hover { transform: translateY(-5px); box-shadow: var(--shadow-pop); }
+.pcard-media {
+  position: relative; display: grid; place-items: center;
+  aspect-ratio: 306 / 230; margin-bottom: .9rem;
+  background: var(--cream); border-radius: var(--r-lg); overflow: hidden;
+}
+.pcard-media img { width: 78%; filter: drop-shadow(0 12px 16px rgb(0 0 0 / .2)); transition: transform var(--med); }
+.pcard:hover .pcard-media img { transform: scale(1.05) rotate(-2deg); }
+
+.ribbon {
+  position: absolute; top: .65rem; left: .65rem; z-index: 2;
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .3rem .65rem; border-radius: var(--pill);
+  background: var(--orange-deep); color: var(--white);
+  font-family: var(--ff-display); font-weight: 700; font-size: .66rem;
+  letter-spacing: .12em; text-transform: uppercase;
+}
+.ribbon .ic { width: 13px; height: 13px; }
+
+.pcard-top { display: flex; align-items: baseline; justify-content: space-between; gap: .8rem; }
+.pcard h3 { font-family: var(--ff-display); font-weight: 700; font-stretch: 108%; font-size: 1.06rem; line-height: 1.15; text-transform: uppercase; }
+.pcard .price { font-family: var(--ff-display); font-weight: 800; font-size: 1.2rem; color: var(--rust); white-space: nowrap; }
+.pcard p { font-size: .9rem; color: #57524c; margin-top: .35rem; }
+.pcard-foot { margin-top: auto; padding-top: .9rem; }
+
+/* Filled tag chips: symbol and label share one colour so the icon reads
+   as "this is what it means" rather than a decorative outline. Icons are
+   filled shapes, not stroked ones — a solid leaf, a solid wheat stalk
+   with a slash, a solid chilli repeated once per spice level. */
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .55rem; }
+.chip {
+  display: inline-flex; align-items: center; gap: .32rem;
+  padding: .28rem .65rem .28rem .5rem; border-radius: var(--pill);
+  font-size: .72rem; font-weight: 700; color: var(--white);
+  background: var(--chip-neutral, #6b655e);
+}
+.chip .ic { width: 13px; height: 13px; fill: currentColor; stroke: none; }
+.chip--gf    { background: var(--chip-gf, #2f7a4f); }
+.chip--veg   { background: var(--chip-veg, #3f8a4a); }
+.chip--vegan { background: var(--chip-vegan, #2f6b4f); }
+.chip--hot   { background: var(--chip-hot, #d1391c); }
+.chip--hot .heat { display: inline-flex; gap: 1px; margin-left: 1px; }
+.chip--hot .heat .ic { width: 11px; height: 11px; }
+
+
+/* ── 11. MENU BOARD ────────────────────────────────────────── */
+
+/* Category rail: no orange band — a translucent sticky strip on the page's
+   own white, same language as the "what people order" floating nav. */
+.pill-rail {
+  position: sticky; top: 74px; z-index: 40;
+  display: flex; gap: .45rem; overflow-x: auto; scrollbar-width: none;
+  padding: .7rem var(--gutter); margin-inline: calc(var(--gutter) * -1);
+  margin-bottom: 1.8rem;
+  background: color-mix(in srgb, var(--white) 88%, transparent);
+  backdrop-filter: blur(10px);
+  scroll-snap-type: x proximity;
+}
+.pill-rail::-webkit-scrollbar { display: none; }
+.pill {
+  flex: none; scroll-snap-align: start;
+  min-height: 44px; padding: .5rem 1.1rem;
+  background: var(--cream); color: var(--rust);
+  border: 0; border-radius: var(--pill);
+  font-family: var(--ff-display); font-weight: 700; font-stretch: 106%;
+  font-size: .82rem; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap;
+  transition: background var(--fast), color var(--fast), box-shadow var(--fast);
+}
+.pill:hover { background: var(--cream-2); }
+.pill[aria-selected="true"] { background: var(--orange-deep); color: var(--white); box-shadow: 0 2px 8px rgb(0 0 0 / .16); }
+
+.menu-group { margin-bottom: 2.6rem; scroll-margin-top: 152px; }
+.menu-group-head { display: flex; align-items: flex-start; gap: .9rem; margin-bottom: 1.1rem; }
+.menu-group-head p { font-size: .94rem; color: var(--on-surface-dim); max-width: 62ch; margin-top: .3rem; }
+
+.menu-list { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 410px), 1fr)); }
+
+/* Horizontal media card: copy left, photo right, round + overlapping it. */
+.mrow {
+  position: relative; display: grid; grid-template-columns: 1fr auto; gap: 1rem;
+  padding: 1.1rem; background: var(--white);
+  border: 1px solid var(--line); border-radius: var(--r-xl);
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--fast), box-shadow var(--fast);
+  --chip-neutral: #6b655e; --chip-green: #3f6b34; --chip-hot: #a3321a;
+}
+.mrow:hover { border-color: #e3ceb4; box-shadow: var(--shadow-pop); }
+.mrow-main { display: flex; flex-direction: column; }
+.mrow-main h4 {
+  font-family: var(--ff-display); font-weight: 700; font-stretch: 106%;
+  font-size: 1.05rem; text-transform: uppercase; line-height: 1.18;
+}
+.mrow-main p { font-size: .88rem; color: #5f5852; margin-top: .3rem; }
+.mrow-price {
+  margin-top: auto; padding-top: .8rem;
+  font-family: var(--ff-display); font-weight: 800; font-size: 1.32rem;
+  color: var(--rust); white-space: nowrap;
+}
+.mrow-price small {
+  display: block; font-family: var(--ff-body); font-weight: 500;
+  font-size: .72rem; color: #6f6862; letter-spacing: .01em;
+}
+.mrow[data-wolt-only="true"] .mrow-price { color: var(--black); }
+
+.mrow-media {
+  position: relative; width: clamp(104px, 26vw, 146px); flex: none;
+  aspect-ratio: 1/1;
+}
+.mrow-media > .pslot {
+  width: 100%; height: 100%; border-radius: var(--r-lg); overflow: hidden; background: var(--cream);
+}
+.mrow-media .pslot img { object-fit: cover; }
+.mrow-media .pslot-ph { border-radius: var(--r-lg); }
+
+/* Round add button, hanging off the bottom-right of the photo. */
+.mrow-add {
+  position: absolute; right: -10px; bottom: -10px; z-index: 3;
+  width: 46px; height: 46px; display: grid; place-items: center;
+  background: var(--orange-deep); color: var(--white);
+  border: 3px solid var(--white); border-radius: 50%;
+  box-shadow: 0 4px 12px rgb(0 0 0 / .18);
+  transition: background var(--fast), transform var(--fast), box-shadow var(--fast);
+}
+.mrow-add:hover { background: #d9661a; }
+.mrow-add .ic { width: 22px; height: 22px; stroke-width: 2.6; }
+
+/* Quantity stepper, replacing the + once something is in the tray. */
+.stepper {
+  position: absolute; right: -10px; bottom: -10px; z-index: 4;
+  display: none; align-items: center;
+  background: var(--white); border: 3px solid var(--white);
+  border-radius: var(--pill); box-shadow: 0 4px 14px rgb(245 130 46 / .3);
+}
+.stepper button {
+  width: 40px; height: 42px; display: grid; place-items: center;
+  background: none; border: 0; color: var(--black); border-radius: 50%;
+}
+.stepper button:hover { background: var(--cream-2); }
+.stepper output {
+  min-width: 1.7rem; text-align: center;
+  font-family: var(--ff-display); font-weight: 800; font-size: 1rem;
+}
+.stepper:not([data-qty="0"]) { display: inline-flex; }
+.mrow:has(.stepper:not([data-qty="0"])) .mrow-add { display: none; }
+
+@media (max-width: 430px) {
+  .mrow { padding: .9rem; gap: .7rem; }
+  .mrow-media { width: 96px; }
+  .mrow-add, .stepper { right: -6px; bottom: -6px; }
+}
+
+
+/* ── 12. ORDER TRAY ────────────────────────────────────────── */
+
+.tray {
+  position: fixed; left: 50%; bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 70; translate: -50% 0;
+  width: min(100% - 1.6rem, 620px);
+  display: flex; align-items: center; gap: .8rem;
+  padding: .6rem .6rem .6rem 1.25rem;
+  background: var(--white); color: var(--black);
+  border-radius: var(--pill); box-shadow: var(--shadow-pop);
+  transform: translateY(160%); opacity: 0; pointer-events: none;
+  transition: transform var(--med), opacity var(--med);
+}
+.tray[data-show="true"] { transform: none; opacity: 1; pointer-events: auto; }
+.tray-sum { margin-right: auto; line-height: 1.25; }
+.tray-sum b { font-family: var(--ff-display); font-weight: 800; font-size: 1rem; text-transform: uppercase; }
+.tray-sum span { display: block; font-size: .8rem; color: var(--on-surface-dim); }
+.tray-clear {
+  width: 44px; height: 44px; display: grid; place-items: center;
+  background: var(--cream); border: 0; border-radius: 50%; color: var(--on-surface-dim);
+  transition: background var(--fast), color var(--fast);
+}
+.tray-clear:hover { background: var(--cream-2); color: var(--black); }
+@media (max-width: 520px) { .tray { padding-left: 1rem; gap: .45rem; } .tray .btn { padding-inline: 1rem; } }
+
+
+/* ── 13. DIALOG ────────────────────────────────────────────── */
+
+.sheet {
+  position: fixed; inset: 0; z-index: 120;
+  display: grid; place-items: center; padding: var(--gutter);
+  background: rgb(20 12 6 / .55); backdrop-filter: blur(4px);
+  opacity: 0; visibility: hidden; transition: opacity var(--med), visibility var(--med);
+}
+.sheet[data-open="true"] { opacity: 1; visibility: visible; }
+.sheet-panel {
+  width: min(100%, 620px); max-height: 88dvh; overflow-y: auto;
+  background: var(--white); color: var(--black);
+  border-radius: var(--r-xl); box-shadow: var(--shadow-pop);
+  padding: clamp(1.3rem, 1rem + 1.4vw, 2.1rem);
+  transform: translateY(16px) scale(.985); transition: transform var(--med);
+}
+.sheet[data-open="true"] .sheet-panel { transform: none; }
+.sheet-head { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.2rem; }
+.sheet-head .d4 { margin-right: auto; }
+.sheet-close {
+  width: 46px; height: 46px; flex: none; display: grid; place-items: center;
+  background: var(--cream); border: 0; border-radius: 50%; color: var(--black);
+  transition: background var(--fast), color var(--fast);
+}
+.sheet-close:hover { background: var(--orange-deep); color: var(--white); }
+
+.route {
+  display: flex; align-items: center; gap: .9rem; width: 100%;
+  padding: .95rem 1.05rem; margin-bottom: .55rem;
+  background: var(--cream); color: var(--black);
+  border: 0; border-radius: var(--r-lg);
+  text-decoration: none; text-align: left;
+  transition: background var(--fast), transform var(--fast), box-shadow var(--fast);
+}
+.route:hover { background: var(--cream-2); transform: translateX(3px); box-shadow: var(--shadow-pop); }
+.route-ic {
+  width: 46px; height: 46px; flex: none; display: grid; place-items: center;
+  background: var(--white); border-radius: 50%; color: var(--rust);
+}
+/* flex + align-items so an inline logo image (Wolt's mark, in place of the
+   text label) sits vertically centred rather than riding the text
+   baseline with mismatched leading above and below it. */
+.route b { display: flex; align-items: center; min-height: 1.3em; font-family: var(--ff-display); font-weight: 700; font-stretch: 106%; font-size: 1rem; text-transform: uppercase; }
+.route span { display: block; font-size: .86rem; color: #5f5852; }
+.route .route-flag {
+  margin-left: auto; flex: none; padding: .3rem .7rem; border-radius: var(--pill);
+  background: var(--orange-deep); color: var(--white);
+  font-family: var(--ff-display); font-weight: 700; font-size: .68rem;
+  letter-spacing: .1em; text-transform: uppercase;
+}
+/* Best route: no pastel tint or coloured border — a solid white card lifted
+   with the orange hover-glow shadow so it stays "white or orange", never a
+   tinted-and-bordered notice. */
+.route--best { background: var(--white); box-shadow: var(--shadow-pop); }
+.route--best:hover { background: var(--white); }
+
+/* One card, two differentiable ways in — WhatsApp and Call sit side by
+   side as their own buttons rather than two separate near-identical rows. */
+.route--dual { flex-direction: column; align-items: stretch; cursor: default; }
+.route--dual:hover { transform: none; }
+.route-dual-info { display: flex; align-items: center; gap: .9rem; }
+.route-dual-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .9rem; }
+.route-dual-btn {
+  display: flex; flex-direction: column; align-items: center; gap: .35rem;
+  padding: .8rem .6rem; background: var(--white); border-radius: var(--r);
+  text-decoration: none; color: var(--black); text-align: center;
+  transition: background var(--fast), transform var(--fast);
+}
+.route-dual-btn:hover { background: var(--orange-deep); color: var(--white); transform: translateY(-2px); }
+.route-dual-btn .ic { width: 20px; height: 20px; }
+.route-dual-btn b { font-family: var(--ff-display); font-weight: 700; font-size: .9rem; text-transform: uppercase; }
+.route-dual-btn small { font-size: .74rem; color: inherit; opacity: .7; }
+
+.ticket {
+  background: var(--cream); border: 1px dashed #dfd2c1; border-radius: var(--r-lg);
+  padding: 1rem 1.1rem; margin-bottom: 1rem; font-size: .92rem;
+}
+.ticket ul { list-style: none; padding: 0; display: grid; gap: .35rem; }
+.ticket li { display: flex; justify-content: space-between; gap: 1rem; }
+.ticket li span:first-child { color: #4c4741; }
+.ticket-total {
+  display: flex; justify-content: space-between; gap: 1rem;
+  margin-top: .8rem; padding-top: .8rem; border-top: 1px solid #e2d6c6;
+  font-family: var(--ff-display); font-weight: 800; text-transform: uppercase;
+}
+/* Standard rounded filled banner — a solid pill-radius card, no accent
+   rail. The icon sits in its own filled roundel so it reads as a badge
+   rather than a stray glyph in the margin. */
+.note {
+  display: flex; align-items: flex-start; gap: .75rem;
+  padding: .9rem 1.1rem; border-radius: var(--r-lg);
+  background: var(--orange-deep); font-size: .88rem; color: var(--white);
+}
+.note .ic {
+  flex: none; width: 26px; height: 26px; padding: 5px; margin-top: -1px;
+  border-radius: 50%; background: var(--white); color: var(--orange-deep);
+  box-sizing: border-box;
+}
+.on-ink .note { background: var(--ink-2); color: var(--white); }
+.on-ink .note .ic { background: var(--orange); color: var(--black); }
+
+/* A sauce-toned variant: deep chilli red instead of the standard brand
+   orange, so this particular banner reads as "about the sauce" at a glance. */
+.note--sauce { background: #a3321c; }
+.note--sauce .ic { color: #a3321c; }
+
+/* ResQ callout: a white card set inside the orange band, its own colour
+   and paragraph rather than blending into the surrounding pitch. */
+.resq-card {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.4rem;
+  margin-top: 1.6rem; padding: 1.2rem 1.4rem;
+  background: var(--white); color: var(--black);
+  border-radius: var(--r-lg);
+}
+.resq-card p { flex: 1 1 320px; margin: 0; font-size: .95rem; }
+.resq-card .btn { flex: none; }
+
+/* ResQ's own brand colour and wordmark, not the site orange — a partner
+   badge keeps the partner's identity rather than being reskinned. */
+.btn--resq { --btn-bg: #007e67; --btn-fg: var(--white); }
+.btn--resq:hover { background: #00695a; color: var(--white); }
+.btn--resq img { display: block; }
+
+/* Wolt's own wordmark, dropped in wherever a price or a route mentions
+   Wolt — the surrounding fill never changes colour for it. */
+.wolt-badge { display: inline-block; vertical-align: middle; }
+
+
+/* ── 14. TIERS, ACCORDION, SLOTS ───────────────────────────── */
+
+.tier {
+  display: flex; flex-direction: column; padding: 1.6rem;
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: var(--r-xl); box-shadow: var(--shadow-card);
+}
+.tier--lead {
+  background: var(--orange-deep); color: var(--white); border-color: var(--orange-deep);
+  --on-surface: var(--white); --on-surface-dim: #ffe2c9;
+  --accent: var(--white); --hairline: #d8894f;
+}
+.tier-price {
+  font-family: var(--ff-display); font-weight: 800; font-stretch: 116%;
+  font-size: clamp(2.3rem, 1.8rem + 2.2vw, 3.4rem); line-height: 1;
+  margin-block: .5rem .2rem; color: var(--rust);
+}
+.tier--lead .tier-price { color: var(--white); }
+.tier-price small { font-size: .3em; letter-spacing: .1em; text-transform: uppercase; }
+.tier ul { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: .55rem; font-size: .93rem; }
+.tier li { display: flex; gap: .6rem; }
+.tier li .ic { width: 17px; height: 17px; color: var(--rust); margin-top: 3px; flex: none; }
+.tier--lead li .ic { color: var(--white); }
+.tier .btn { margin-top: 1.4rem; }
+.tier--lead .btn--primary { --btn-bg: var(--white); --btn-fg: var(--orange-deep); }
+
+details.acc { border-bottom: 0; }
+details.acc summary {
+  display: flex; align-items: center; gap: .9rem;
+  min-height: 60px; padding: .9rem 0; cursor: pointer; list-style: none;
+  font-family: var(--ff-display); font-weight: 700; font-stretch: 106%;
+  font-size: 1rem; text-transform: uppercase;
+}
+details.acc summary::-webkit-details-marker { display: none; }
+details.acc summary .ic { margin-left: auto; color: var(--accent); transition: transform var(--fast); }
+details.acc[open] summary .ic { transform: rotate(90deg); }
+details.acc .acc-body { padding-bottom: 1.2rem; }
+
+.slots { display: flex; flex-wrap: wrap; gap: .5rem; }
+.slot {
+  min-height: 48px; padding: .6rem 1.1rem;
+  background: var(--cream); color: var(--on-surface);
+  border: 0; border-radius: var(--pill);
+  font-family: var(--ff-display); font-weight: 700; font-size: .88rem; letter-spacing: .04em;
+  transition: background var(--fast), box-shadow var(--fast);
+}
+.slot:hover { background: var(--cream-2); }
+.slot[aria-pressed="true"] { background: var(--orange-deep); color: var(--white); box-shadow: 0 2px 8px rgb(0 0 0 / .16); }
+
+
+/* ── 15. FORMS ─────────────────────────────────────────────── */
+
+.form { display: grid; gap: 1rem; }
+.field { display: grid; gap: .38rem; }
+.field > label, .fieldset > legend {
+  font-family: var(--ff-display); font-weight: 700; font-stretch: 106%;
+  font-size: .77rem; letter-spacing: .1em; text-transform: uppercase; color: var(--on-surface);
+}
+.field small { font-size: .82rem; color: var(--on-surface-dim); }
+.field input, .field select, .field textarea {
+  width: 100%; min-height: 52px; padding: .8rem 1rem;
+  background: var(--white); color: var(--on-surface);
+  border: 1.5px solid var(--hairline); border-radius: var(--r);
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+.field textarea { min-height: 128px; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--orange); box-shadow: 0 0 0 3px #f5822e33;
+}
+.field-row { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+.fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: .55rem; }
+
+.radio-cards { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+.radio-card {
+  position: relative; display: flex; flex-direction: column; gap: .2rem;
+  padding: 1rem 1.1rem; background: var(--cream); color: var(--black);
+  border: 0; border-radius: var(--r-lg); cursor: pointer;
+  transition: background var(--fast), color var(--fast), box-shadow var(--fast);
+}
+.radio-card:hover { background: var(--cream-2); }
+.radio-card input { position: absolute; opacity: 0; pointer-events: none; }
+.radio-card b { font-family: var(--ff-display); font-weight: 700; font-size: .95rem; text-transform: uppercase; }
+.radio-card span { font-size: .84rem; color: var(--on-surface-dim); }
+.radio-card:has(input:checked) { background: var(--orange-deep); color: var(--white); box-shadow: var(--shadow-pop); }
+.radio-card:has(input:checked) span { color: #ffe2c9; }
+.radio-card:has(input:focus-visible) { outline: 3px solid var(--orange-deep); outline-offset: 2px; }
+
+/* Solid, rounded, filled — no pastel tint, no coloured border. */
+.form-status { font-size: .92rem; padding: .85rem 1.1rem; border-radius: var(--r-lg); display: none; }
+.form-status[data-state="ok"]  { display: block; background: #2f7a4f; color: var(--white); }
+.form-status[data-state="err"] { display: block; background: #a3321a; color: var(--white); }
+
+
+/* ── 16. BENTO / FIND US ───────────────────────────────────── */
+
+.bento { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
+.bento > * {
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: var(--r-xl); padding: 1.4rem; box-shadow: var(--shadow-card);
+}
+@media (min-width: 860px) {
+  .bento { grid-template-columns: repeat(4, 1fr); }
+  .bento .b-wide { grid-column: span 2; }
+  .bento .b-tall { grid-row: span 2; }
+}
+.bento-map { padding: 0; overflow: hidden; min-height: 280px; }
+.bento-map iframe { width: 100%; height: 100%; min-height: 280px; border: 0; filter: grayscale(.35); }
+
+.social-list { list-style: none; padding: 0; display: grid; gap: .5rem; }
+.social-list a {
+  display: flex; align-items: center; gap: .8rem; min-height: 54px;
+  padding: .7rem .9rem; background: var(--cream);
+  border: 1px solid var(--line); border-radius: var(--r-lg);
+  text-decoration: none; font-weight: 600;
+  transition: border-color var(--fast), transform var(--fast);
+}
+.social-list a:hover { border-color: var(--orange); transform: translateX(3px); }
+.social-list .ic { color: var(--rust); }
+.social-list .ic-ext { margin-left: auto; width: 16px; height: 16px; color: #6f6961; }
+
+.hours-list { list-style: none; padding: 0; display: grid; gap: .1rem; }
+.hours-list li {
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: .45rem 0; font-size: .95rem;
+}
+.hours-list li[data-today="true"] { color: var(--rust); font-weight: 700; }
+
+
+/* ── 17. FOOTER ────────────────────────────────────────────── */
+
+.ftr { background: var(--black); color: var(--white); padding-block: 3rem 1.8rem; }
+.ftr .brand b { color: var(--white); }
+.ftr .brand > span > span { color: var(--orange); }
+.ftr-grid { display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.ftr h4 {
+  font-family: var(--ff-display); font-weight: 700; font-size: .78rem;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--orange); margin-bottom: .8rem;
+}
+.ftr ul { list-style: none; padding: 0; display: grid; gap: .1rem; }
+.ftr ul a, .ftr address a {
+  display: inline-flex; align-items: center; gap: .45rem;
+  min-height: 44px; color: #cbc6bf; text-decoration: none; font-size: .93rem;
+}
+.ftr ul a:hover, .ftr address a:hover { color: var(--orange); }
+.ftr address { font-style: normal; color: #cbc6bf; font-size: .93rem; }
+.ftr-base {
+  display: flex; flex-wrap: wrap; gap: .8rem 1.6rem; align-items: center;
+  margin-top: 2.2rem; padding-top: 1.4rem; border-top: 1px solid #2c2a27;
+  font-size: .84rem; color: #99938c;
+}
+
+.totop {
+  position: fixed; right: 1rem; bottom: 5.6rem; z-index: 60;
+  width: 48px; height: 48px; display: grid; place-items: center;
+  background: var(--orange-deep); color: var(--white);
+  border: 0; border-radius: 50%; box-shadow: var(--shadow-card);
+  opacity: 0; pointer-events: none; transition: opacity var(--fast), background var(--fast), color var(--fast), box-shadow var(--fast);
+}
+.totop[data-show="true"] { opacity: 1; pointer-events: auto; }
+.totop:hover { background: #d9661a; }
+
+
+/* ── 18. PAGE HEAD ─────────────────────────────────────────── */
+
+.phead {
+  background: var(--white);
+  /* extra top room so the content clears the fixed transparent header */
+  padding-top: calc(75px + clamp(1.6rem, 1.2rem + 1.6vw, 2.6rem));
+  padding-bottom: clamp(2rem, 1.6rem + 2vw, 3.4rem);
+}
+/* Capped by width so a long single word ("Lounasbuffet") never breaks
+   mid-word on a narrow phone. */
+.phead .d2 { margin-block: .5rem .7rem; font-size: min(var(--step-4), 8.3vw); }
+.phead p { max-width: 62ch; color: #57524c; }
+.crumbs { display: flex; gap: .45rem; align-items: center; font-size: .82rem; color: #6f6961; }
+.crumbs a { text-decoration: none; }
+.crumbs a:hover { color: var(--rust); }
+.crumbs .ic { width: 14px; height: 14px; }
+
+.meta-strip { display: flex; flex-wrap: wrap; gap: .5rem .9rem; margin-top: 1.1rem; font-size: .88rem; color: #57524c; }
+.meta-strip span { display: inline-flex; align-items: center; gap: .4rem; }
+.meta-strip .ic { width: 16px; height: 16px; color: var(--rust); }
+
+.rise { opacity: 0; transform: translateY(18px); transition: opacity .55s var(--ease), transform .55s var(--ease); }
+.rise.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .rise { opacity: 1; transform: none; } }
+
+
+/* ── 19b. ORDER-TYPE NAV (sticky, transparent) ────────────────── */
+
+/* Sits over the "what people order" section only — sticky while that
+   section is in view, hidden once scrolled past via [data-show]. No fill
+   of its own, so it reads as part of the page rather than a bar. */
+.order-nav {
+  position: sticky; top: 80px; z-index: 45;
+  display: flex; justify-content: center; gap: .5rem;
+  padding-block: .6rem; margin-bottom: 1.6rem;
+  background: transparent;
+  opacity: 0; transform: translateY(-6px); pointer-events: none;
+  transition: opacity var(--fast), transform var(--fast);
+}
+.order-nav[data-show="true"] { opacity: 1; transform: none; pointer-events: auto; }
+.order-nav a {
+  min-height: 42px; display: inline-flex; align-items: center;
+  padding: .5rem 1.05rem; border-radius: var(--pill);
+  background: color-mix(in srgb, var(--white) 82%, transparent);
+  backdrop-filter: blur(10px);
+  border: 0; box-shadow: var(--shadow-card);
+  font-family: var(--ff-display); font-weight: 700; font-stretch: 106%;
+  font-size: .82rem; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--black); text-decoration: none;
+  transition: background var(--fast), color var(--fast), box-shadow var(--fast);
+}
+.order-nav a:hover {
+  background: var(--white); box-shadow: var(--shadow-pop);
+}
+.order-nav a.is-active {
+  background: var(--orange-deep); color: var(--white); box-shadow: var(--shadow-pop);
+}
+
+/* ── 19c. COMBO CARDS ──────────────────────────────────────── */
+
+/* Deals aren't live yet: the generated cards are blurred out and a single
+   "coming soon" label sits on top. */
+.soon-stage { position: relative; min-height: 160px; }
+.is-soon .soon-stage [data-combo-grid] {
+  filter: blur(7px) saturate(.75);
+  opacity: .5;
+  pointer-events: none;
+  user-select: none;
+}
+.is-soon .soon-tag {
+  position: absolute; inset: 0; margin: 0;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  font-family: var(--ff-display); font-weight: 800; font-stretch: 110%;
+  font-size: clamp(1rem, .9rem + .8vw, 1.5rem); letter-spacing: .04em;
+  text-transform: uppercase; color: var(--on-surface);
+}
+.combo-grid {
+  display: grid; gap: 1.1rem; align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 262px), 1fr));
+}
+.combo-card {
+  position: relative; display: flex; flex-direction: column;
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: var(--r-xl); padding: 1.3rem;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--med), box-shadow var(--med);
+}
+.combo-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-pop); }
+/* The featured combo pops out: slightly larger, raised, orange border. */
+.combo-card--featured {
+  border: 0;
+  transform: translateY(-10px) scale(1.045);
+  box-shadow: 0 10px 26px rgb(245 130 46 / .22), 0 30px 60px rgb(245 130 46 / .2);
+  z-index: 2;
+}
+.combo-card--featured:hover { transform: translateY(-14px) scale(1.045); }
+@media (max-width: 720px) {
+  .combo-card--featured { transform: none; }
+  .combo-card--featured:hover { transform: translateY(-4px); }
+}
+.combo-card .ribbon { position: static; align-self: flex-start; margin-bottom: .7rem; }
+.combo-card h3 {
+  font-family: var(--ff-display); font-weight: 700; font-stretch: 108%;
+  font-size: 1.12rem; text-transform: uppercase; line-height: 1.15;
+}
+.combo-card p { font-size: .88rem; color: var(--on-surface-dim); margin-top: .4rem; }
+.combo-includes {
+  list-style: none; padding: 0; margin-top: .8rem; display: grid; gap: .3rem;
+  font-size: .85rem;
+}
+.combo-includes li { display: flex; align-items: center; gap: .45rem; }
+.combo-includes .ic { width: 14px; height: 14px; color: var(--rust); flex: none; }
+/* One price line, one plain-language saving note underneath — not a
+   struck-through "was" price and a separate save badge, which reads like a
+   SaaS pricing tier rather than a plate of food. */
+.combo-price-row { margin-top: 1rem; }
+.combo-price {
+  display: block;
+  font-family: var(--ff-display); font-weight: 800; font-size: 1.5rem; color: var(--rust);
+}
+.combo-save { display: block; margin-top: .2rem; font-size: .82rem; color: var(--on-surface-dim); }
+.combo-card .btn { margin-top: 1.1rem; }
+
+/* ── 19d. BUFFET SPREAD ────────────────────────────────────── */
+
+/* Deliberately not another tier/pricing card: a wide, single card built
+   around a cloud of what's actually on the table, so it reads as "here is
+   the spread" rather than "here is a plan to compare". */
+.buffet-spread {
+  background: var(--white); border-radius: var(--r-xl);
+  padding: clamp(1.4rem, 1.1rem + 1.4vw, 2.2rem);
+  box-shadow: var(--shadow-card);
+}
+.buffet-spread-head p { margin-top: .6rem; max-width: 68ch; color: var(--on-surface-dim); }
+/* No rule lines above or below the chip cloud — the colour shift between
+   rows is separation enough. */
+.buffet-spread-chips {
+  display: flex; flex-wrap: wrap; gap: .5rem;
+  margin-top: 1.3rem;
+}
+.buffet-spread-chips .chip { font-size: .8rem; padding: .38rem .8rem .38rem .6rem; }
+.buffet-spread-chips .ic { width: 15px; height: 15px; }
+/* Each chip coloured to match what it names, not the generic neutral. */
+.chip--golden { background: #b8791a; }
+.chip--curry  { background: #b23a1c; }
+.chip--finnish { background: #2f5f8a; }
+.chip--salad  { background: #3f8a4a; }
+.chip--fruit  { background: #c23f63; }
+.chip--sweet  { background: #9a5aa8; }
+.chip--drink  { background: #6b4a2f; }
+.buffet-spread-foot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 1.6rem;
+  margin-top: 1.3rem;
+}
+.buffet-spread-foot .btn { margin-left: auto; }
+@media (max-width: 560px) { .buffet-spread-foot .btn { margin-left: 0; width: 100%; } }
+
+
+/* ── 19. SWIPER ────────────────────────────────────────────── */
+
+/* A carousel is right on a phone and wrong on a desktop, so Swiper is only
+   enabled below 720px and the slides fall back to a grid above it. */
+.cards-swiper { overflow: visible; }
+.cards-swiper .swiper-wrapper {
+  display: grid; gap: clamp(1rem, .6rem + 1.2vw, 1.5rem);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 262px), 1fr));
+}
+/* Only the desktop grid pins the wrapper in place. On a phone the
+   transform IS the swipe — pinning it there froze the carousel. */
+@media (min-width: 720px) {
+  .cards-swiper .swiper-wrapper { transform: none !important; }
+}
+.cards-swiper .swiper-pagination { display: none; }
+
+@media (max-width: 719px) {
+  .cards-swiper { overflow: hidden; padding-bottom: 2.6rem; }
+  .cards-swiper .swiper-wrapper { display: flex; gap: 0; grid-template-columns: none; }
+  .cards-swiper .swiper-slide { height: auto; }
+  .cards-swiper .swiper-pagination {
+    display: block; bottom: 0;
+    --swiper-pagination-color: var(--orange-deep);
+    --swiper-pagination-bullet-inactive-color: #c9c0b6;
+    --swiper-pagination-bullet-inactive-opacity: 1;
+    --swiper-pagination-bullet-size: 10px;
+    --swiper-pagination-bullet-horizontal-gap: 9px;
+  }
+  .cards-swiper .swiper-pagination-bullet { position: relative; }
+  /* The dot stays 10px; the tappable area around it is 44px. */
+  .cards-swiper .swiper-pagination-bullet::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    width: 44px; height: 44px; translate: -50% -50%;
+  }
+}
+
+@media print {
+  .hdr, .tray, .totop, .marquee, .ftr, .sheet, .mrow-add, .stepper { display: none !important; }
+  body, .section, .phead { background: #fff !important; color: #000 !important; }
+  .section, .phead { padding-block: 1rem; }
+}

@@ -1,0 +1,21 @@
+# Kept in the project, never uploaded to the live site.
+
+# Build and image tools, docs, raw photos
+tools/
+photos-raw/
+*.md
+Dewon-Baseline-Preview.html
+
+# Source photos that no page uses (the site serves the smaller copies
+# generated from them: heropic-*.jpg, og-cover.jpg, images/buffet/*)
+assets/images/*.src.png
+assets/images/heropic.jpg
+assets/images/bonelessfriedchicken.png
+assets/images/drumstick.png
+assets/images/friedwings.png
+assets/images/personeatingchicken.png
+assets/images/hero-boneless.png
+assets/images/ref.png
+assets/images/logo.JPG
+assets/images/logo-full.png
+assets/images/logo-mark.png

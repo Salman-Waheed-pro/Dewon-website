@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Every public page, at the exact URL the site serves. sauces.html is
+     a standalone widget (noindex) and is left out on purpose.
+     Update <lastmod> when a page's content changes. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://dewon.fi/</loc><lastmod>2026-09-12</lastmod></url>
+  <url><loc>https://dewon.fi/menu-buffet.html</loc><lastmod>2026-09-12</lastmod></url>
+  <url><loc>https://dewon.fi/menu-a-la-carte.html</loc><lastmod>2026-09-12</lastmod></url>
+  <url><loc>https://dewon.fi/reservations.html</loc><lastmod>2026-09-12</lastmod></url>
+  <url><loc>https://dewon.fi/parties.html</loc><lastmod>2026-09-12</lastmod></url>
+  <url><loc>https://dewon.fi/find-us.html</loc><lastmod>2026-09-12</lastmod></url>
+  <url><loc>https://dewon.fi/franchising.html</loc><lastmod>2026-09-12</lastmod></url>
+</urlset>
